@@ -23,6 +23,15 @@ with chat_tab:
     if "sources" not in st.session_state:
         st.session_state.sources = {}
 
+    # ── Build (human, ai) tuple history to send to the API ──
+    def build_chat_history():
+        history = []
+        msgs = st.session_state.messages
+        for i in range(0, len(msgs) - 1, 2):
+            if msgs[i]["role"] == "user" and msgs[i + 1]["role"] == "assistant":
+                history.append([msgs[i]["content"], msgs[i + 1]["content"]])
+        return history
+
     # ── Scrollable chat history container (fixed height, always visible) ──
     chat_container = st.container(height=550)
     with chat_container:
@@ -44,11 +53,17 @@ with chat_tab:
     # ── Chat input always anchored below the container ──
     if question := st.chat_input("Ask a question..."):
 
+        # Build history BEFORE appending the new question so pairing stays correct
+        chat_history = build_chat_history()
+
         st.session_state.messages.append({"role": "user", "content": question})
 
         with st.spinner("Thinking..."):
             try:
-                response = requests.post(API_URL, json={"question": question})
+                response = requests.post(API_URL, json={
+                    "question": question,
+                    "chat_history": chat_history
+                })
                 response.raise_for_status()
                 data = response.json()
 

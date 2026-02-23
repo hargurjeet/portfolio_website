@@ -23,7 +23,10 @@ def chat(request: ChatRequest):
             detail="Vector store not loaded. Run main.py first to build the index."
         )
 
-    result = _chain.invoke({"query": request.question})
+    result = _chain.invoke({
+        "question": request.question,
+        "chat_history": request.chat_history  # list of (human, ai) tuples
+    })
 
     sources = [
         SourceDocument(
@@ -33,4 +36,4 @@ def chat(request: ChatRequest):
         for doc in result["source_documents"]
     ]
 
-    return ChatResponse(answer=result["result"], sources=sources)
+    return ChatResponse(answer=result["answer"], sources=sources)

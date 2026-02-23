@@ -1,9 +1,10 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Tuple
 
 
 class ChatRequest(BaseModel):
     question: str
+    chat_history: List[Tuple[str, str]] = []  # list of (human, ai) tuples
 
 
 class SourceDocument(BaseModel):
