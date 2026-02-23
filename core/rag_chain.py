@@ -1,73 +1,68 @@
-from langchain.chains import ConversationalRetrievalChain
-from langchain.prompts import PromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate, ChatPromptTemplate
 from langchain_openai import ChatOpenAI
+from langchain.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
+from langchain_community.vectorstores import FAISS
 from config import OPENAI_API_KEY, LLM_MODEL, LLM_TEMPERATURE, TOP_K
 
 
-def build_rag_chain(vector_store):
-    llm = ChatOpenAI(
+def build_llm(streaming: bool = False, callbacks: list = []):
+    return ChatOpenAI(
         model=LLM_MODEL,
         temperature=LLM_TEMPERATURE,
-        openai_api_key=OPENAI_API_KEY
+        openai_api_key=OPENAI_API_KEY,
+        streaming=streaming,
+        callbacks=callbacks
     )
 
-    # This prompt explicitly includes chat history so the LLM can answer
-    # both document-based AND conversational follow-up questions
-    system_template = """
-You are a helpful assistant for Hargurjeet Singh Ganger's portfolio chatbot.
-You have access to his resume/documents as context below.
 
-Use the context to answer questions about Hargurjeet's experience, skills, and background.
-For conversational questions (like "what did I just ask?" or "can you elaborate?"), 
-use the chat history to respond naturally.
-If you truly cannot answer from either the context or conversation history, 
-say "I don't have enough information to answer that."
-
-Chat History:
-{chat_history}
-
-Context from documents:
-{context}
-"""
-
-    human_template = "Question: {question}"
-
-    combine_prompt = ChatPromptTemplate.from_messages([
-        SystemMessagePromptTemplate.from_template(system_template),
-        HumanMessagePromptTemplate.from_template(human_template)
-    ])
-
+def retrieve_docs(vector_store, question: str):
     retriever = vector_store.as_retriever(
         search_type="similarity",
         search_kwargs={"k": TOP_K}
     )
-
-    rag_chain = ConversationalRetrievalChain.from_llm(
-        llm=llm,
-        retriever=retriever,
-        return_source_documents=True,
-        combine_docs_chain_kwargs={"prompt": combine_prompt}
-    )
-
-    return rag_chain
+    return retriever.invoke(question)
 
 
-def ask(chain, question: str, chat_history: list = []):
+def build_prompt(question: str, context: str, chat_history: list) -> list:
     """
-    chat_history: list of (human_message, ai_message) tuples
+    Build messages list with system prompt, history, and current question.
+    chat_history: list of [human, ai] pairs
     """
-    print(f"\n🔍 Question: {question}")
-    result = chain.invoke({
-        "question": question,
-        "chat_history": chat_history
-    })
+    system = """You are a helpful assistant for Hargurjeet Singh Ganger's portfolio chatbot.
+Use the context below to answer questions about his experience, skills, and background.
+For conversational questions (like "what did I just ask?" or "can you elaborate?"),
+use the chat history to respond naturally.
+If you cannot answer from either the context or conversation history,
+say "I don't have enough information to answer that."
 
-    print(f"\n💬 Answer:\n{result['answer']}")
+Context from documents:
+{context}"""
 
+    messages = [{"role": "system", "content": system.format(context=context)}]
+
+    # Inject prior turns
+    for human, ai in chat_history:
+        messages.append({"role": "user", "content": human})
+        messages.append({"role": "assistant", "content": ai})
+
+    # Add current question
+    messages.append({"role": "user", "content": question})
+    return messages
+
+
+def ask(vector_store, question: str, chat_history: list = []):
+    """For terminal use via main.py"""
+    docs = retrieve_docs(vector_store, question)
+    context = "\n\n".join(doc.page_content for doc in docs)
+    messages = build_prompt(question, context, chat_history)
+
+    llm = build_llm()
+    response = llm.invoke(messages)
+
+    print(f"\n💬 Answer:\n{response.content}")
     print("\n📄 Sources:")
-    for i, doc in enumerate(result["source_documents"]):
+    for i, doc in enumerate(docs):
         source = doc.metadata.get("source", "Unknown")
         page = doc.metadata.get("page", "?")
         print(f"  [{i+1}] {source} — page {page}")
 
-    return result
+    return {"answer": response.content, "source_documents": docs}

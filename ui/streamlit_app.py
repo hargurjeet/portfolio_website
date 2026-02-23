@@ -60,19 +60,54 @@ with chat_tab:
 
         with st.spinner("Thinking..."):
             try:
-                response = requests.post(API_URL, json={
-                    "question": question,
-                    "chat_history": chat_history
-                })
-                response.raise_for_status()
-                data = response.json()
+                # Open streaming connection
+                with requests.post(
+                    API_URL,
+                    json={"question": question, "chat_history": chat_history},
+                    stream=True
+                ) as response:
+                    response.raise_for_status()
 
-                answer = data["answer"]
-                sources = data["sources"]
+                    full_answer = ""
+                    sources = []
 
-                assistant_idx = len(st.session_state.messages)
-                st.session_state.messages.append({"role": "assistant", "content": answer})
-                st.session_state.sources[assistant_idx] = sources
+                    # Stream tokens into a live text placeholder
+                    with chat_container:
+                        with st.chat_message("assistant"):
+                            token_placeholder = st.empty()
+
+                            for line in response.iter_lines():
+                                if not line:
+                                    continue
+                                line = line.decode("utf-8")
+                                if not line.startswith("data: "):
+                                    continue
+                                payload = line[len("data: "):]
+                                if payload == "[DONE]":
+                                    break
+
+                                import json
+                                data = json.loads(payload)
+
+                                if "token" in data:
+                                    full_answer += data["token"]
+                                    token_placeholder.markdown(full_answer + "▌")
+
+                                if "sources" in data:
+                                    sources = data["sources"]
+
+                            # Final render without cursor
+                            token_placeholder.markdown(full_answer)
+
+                            if sources:
+                                with st.expander("📄 Sources"):
+                                    for j, src in enumerate(sources):
+                                        st.write(f"**[{j+1}]** {src['source']} — page {src['page']}")
+
+                    # Save to session state
+                    assistant_idx = len(st.session_state.messages)
+                    st.session_state.messages.append({"role": "assistant", "content": full_answer})
+                    st.session_state.sources[assistant_idx] = sources
 
             except requests.exceptions.ConnectionError:
                 st.session_state.messages.append({
