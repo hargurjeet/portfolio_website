@@ -353,11 +353,28 @@ for line in response.iter_lines():
 
 ## 🚀 Deployment
 
-### Docker (Coming Soon)
+### Docker
+
+**Build and run with Docker Compose** (Recommended):
 ```bash
-docker build -t portfolio-chatbot .
-docker run -p 8000:8000 -p 8501:8501 portfolio-chatbot
+# Set your OpenAI API key in .env file first
+docker-compose up --build
 ```
+
+**Or build and run manually**:
+```bash
+# Build image
+docker build -t portfolio-chatbot .
+
+# Run container
+docker run -p 8000:8000 -p 8501:8501 \
+  -e OPENAI_API_KEY=your_key_here \
+  portfolio-chatbot
+```
+
+Access:
+- **Streamlit UI**: http://localhost:8501
+- **FastAPI**: http://localhost:8000/docs
 
 ### Cloud Platforms
 - **AWS**: Deploy on EC2 or ECS with Application Load Balancer
