@@ -43,9 +43,17 @@ html, body, [class*="css"] {
     color: #e8e8e8 !important;
 }
 
-/* ── Hide default header ── */
-#MainMenu, header, footer { visibility: hidden; }
-            
+/* ── Hide default header & white ribbon ── */
+#MainMenu, footer { visibility: hidden; }
+header[data-testid="stHeader"] {
+    background: transparent !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    visibility: hidden !important;
+}
+[data-testid="stToolbar"] { display: none !important; }
+.stDeployButton { display: none !important; }
+
 /* ── Force sidebar open and visible ── */
 [data-testid="stSidebar"] {
     display: block !important;
@@ -54,7 +62,7 @@ html, body, [class*="css"] {
     max-width: 260px !important;
     transform: none !important;
 }
-            
+
 /* ── Hide the sidebar collapse arrow button ── */
 [data-testid="collapsedControl"] {
     display: none !important;
@@ -771,9 +779,10 @@ with blogs_tab:
         </a>
         """, unsafe_allow_html=True)
 
+
+# ── TAB 4: PROJECTS ────────────────────────────────────────────────────────────
 with projects_tab:
 
-    # ── Project data — update with your real projects ──
     PROJECTS = [
         {
             "title": "Portfolio AI Chatbot",
@@ -804,100 +813,33 @@ with projects_tab:
         },
     ]
 
-    st.markdown("""
-    <div style="font-size:11px; color:#555; letter-spacing:1.5px;
-         text-transform:uppercase; font-weight:600; margin-bottom:20px; margin-top:8px;">
-        Deployed Projects
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        '<div style="font-size:11px;color:#555;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;margin-bottom:20px;margin-top:8px;">Deployed Projects</div>',
+        unsafe_allow_html=True
+    )
 
     for project in PROJECTS:
         status_color = "#22c55e" if project["status"] == "Live" else "#f59e0b"
 
-        # Build tag pills
         tags_html = "".join([
-            f'<span style="background:#252525; color:#888; font-size:11px; font-family:\'JetBrains Mono\',monospace; padding:3px 10px; border-radius:4px; margin-right:6px;">{tag}</span>'
+            f'<span style="background:#252525;color:#888;font-size:11px;font-family:JetBrains Mono,monospace;padding:3px 10px;border-radius:4px;margin-right:6px;margin-bottom:4px;display:inline-block;">{tag}</span>'
             for tag in project["tags"]
         ])
 
-        st.markdown(f"""
-        <div style="
-            background: #141414;
-            border: 1px solid #222;
-            border-radius: 16px;
-            overflow: hidden;
-            margin-bottom: 24px;
-            transition: border-color 0.2s;
-        " onmouseover="this.style.borderColor='#ff5733'" onmouseout="this.style.borderColor='#222'">
-
-            <!-- Banner Image -->
-            <div style="
-                width: 100%; height: 180px;
-                background-image: url('{project['banner']}');
-                background-size: cover; background-position: center;
-                position: relative;
-            ">
-                <!-- Status badge -->
-                <div style="
-                    position: absolute; top: 14px; right: 14px;
-                    background: rgba(0,0,0,0.75);
-                    backdrop-filter: blur(6px);
-                    border: 1px solid {status_color};
-                    color: {status_color};
-                    font-size: 11px; font-weight: 700;
-                    padding: 4px 10px; border-radius: 20px;
-                    letter-spacing: 0.5px;
-                ">● {project['status']}</div>
-            </div>
-
-            <!-- Card Body -->
-            <div style="padding: 22px 26px 20px 26px;">
-
-                <!-- Title -->
-                <div style="
-                    font-family: 'DM Serif Display', serif;
-                    font-size: 20px; color: #f0f0f0;
-                    margin-bottom: 10px; line-height: 1.3;
-                ">{project['title']}</div>
-
-                <!-- Description -->
-                <div style="
-                    font-size: 14px; color: #777;
-                    line-height: 1.65; margin-bottom: 16px;
-                ">{project['description']}</div>
-
-                <!-- Tags -->
-                <div style="margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 6px;">
-                    {tags_html}
-                </div>
-
-                <!-- Buttons row -->
-                <div style="display: flex; gap: 12px;">
-                    <a href="{project['live_url']}" target="_blank" style="text-decoration:none;">
-                        <div style="
-                            background: #ff5733; color: #fff;
-                            font-size: 13px; font-weight: 600;
-                            padding: 9px 20px; border-radius: 8px;
-                            display: inline-flex; align-items: center; gap: 7px;
-                            transition: opacity 0.2s;
-                        " onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
-                            🚀 Launch App
-                        </div>
-                    </a>
-                    <a href="{project['github_url']}" target="_blank" style="text-decoration:none;">
-                        <div style="
-                            background: transparent; color: #aaa;
-                            border: 1px solid #333;
-                            font-size: 13px; font-weight: 500;
-                            padding: 9px 20px; border-radius: 8px;
-                            display: inline-flex; align-items: center; gap: 7px;
-                            transition: border-color 0.2s, color 0.2s;
-                        " onmouseover="this.style.borderColor='#aaa';this.style.color='#fff'" onmouseout="this.style.borderColor='#333';this.style.color='#aaa'">
-                            🐙 View on GitHub
-                        </div>
-                    </a>
-                </div>
-
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        card = (
+            '<div style="background:#141414;border:1px solid #222;border-radius:16px;overflow:hidden;margin-bottom:24px;">'
+                f'<div style="width:100%;height:180px;background-image:url({project["banner"]});background-size:cover;background-position:center;position:relative;">'
+                    f'<div style="position:absolute;top:14px;right:14px;background:rgba(0,0,0,0.75);border:1px solid {status_color};color:{status_color};font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;letter-spacing:0.5px;">&#9679; {project["status"]}</div>'
+                '</div>'
+                '<div style="padding:22px 26px 20px 26px;">'
+                    f'<div style="font-family:Georgia,serif;font-size:20px;color:#f0f0f0;margin-bottom:10px;line-height:1.3;">{project["title"]}</div>'
+                    f'<div style="font-size:14px;color:#777;line-height:1.65;margin-bottom:16px;">{project["description"]}</div>'
+                    f'<div style="margin-bottom:20px;">{tags_html}</div>'
+                    '<div style="display:flex;gap:12px;">'
+                        f'<a href="{project["live_url"]}" target="_blank" style="text-decoration:none;"><div style="background:#ff5733;color:#fff;font-size:13px;font-weight:600;padding:9px 20px;border-radius:8px;display:inline-flex;align-items:center;gap:7px;">🚀 Launch App</div></a>'
+                        f'<a href="{project["github_url"]}" target="_blank" style="text-decoration:none;"><div style="background:transparent;color:#aaa;border:1px solid #333;font-size:13px;font-weight:500;padding:9px 20px;border-radius:8px;display:inline-flex;align-items:center;gap:7px;">🐙 View on GitHub</div></a>'
+                    '</div>'
+                '</div>'
+            '</div>'
+        )
+        st.markdown(card, unsafe_allow_html=True)
